@@ -423,13 +423,16 @@
 
   <section class="panel" id="downloadPanel">
     <h2><span class="tag">4</span> 결과 저장 및 제출</h2>
-    <p class="desc">① 아래 버튼으로 화면을 캡처해서 저장한 다음, ② "제출하러 가기"를 눌러 구글 클래스룸 과제 페이지에서 방금 저장한 파일을 첨부·제출하세요.</p>
+    <p class="desc">화면을 캡처해서 저장한 다음, 클래스룸 과제 화면에서 그 파일을 첨부·제출하세요.</p>
     <div class="toolbar" id="saveButtonsRow" style="display:none;">
       <button class="reset-btn" id="screenshotBtn" style="color:var(--accent); text-decoration:none; border:2px solid var(--accent); border-radius:999px; padding:8px 18px; font-size:0.85rem;">📸 전체 화면 캡처해서 저장</button>
       <button class="reset-btn" id="downloadBtn" style="color:var(--ink-soft); text-decoration:none; border:2px solid var(--panel-edge); border-radius:999px; padding:8px 18px; font-size:0.85rem;">📄 글 파일로 저장</button>
     </div>
-    <div class="toolbar">
-      <a class="reset-btn" id="submitLink" href="https://classroom.google.com/c/ODg2NzEyMzAxNjEx/sa/ODg2NzEzMzAwNzk4/details" target="_blank" rel="noopener" style="color:#fff; text-decoration:none; background:var(--accent); border:2px solid var(--accent); border-radius:999px; padding:8px 18px; font-size:0.85rem; font-weight:800; display:inline-block;">🎓 제출하러 가기 (구글 클래스룸)</a>
+    <div id="submitGuide" style="background:var(--accent-soft); border-radius:12px; padding:12px 14px; font-size:0.86rem; line-height:1.6;">
+      <b>제출 방법</b><br>
+      ① 위 버튼으로 이미지를 저장해요.<br>
+      ② 이 도구를 열었던 <b>구글 클래스룸 과제 화면으로 돌아가요</b> (이 창을 닫거나 이전 탭으로 이동).<br>
+      ③ 과제 화면에서 <b>[추가 또는 만들기] → [파일]</b>로 저장한 이미지를 첨부하고 <b>[제출]</b>을 눌러요.
     </div>
   </section>
 
