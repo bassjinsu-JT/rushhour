@@ -426,6 +426,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 (function(){
   "use strict";
@@ -624,7 +625,6 @@
     });
 
     return {
-      getData: function(){ return data; },
       getText: function(){
         var lines = [];
         for(var r=0; r<6; r++){
@@ -817,10 +817,6 @@
       },
       getMoveCount: function(){
         return computeGroups().groups.length;
-      },
-      getSnapshot: function(){
-        var g = computeGroups();
-        return { data: data, keyToGroupIdx: g.keyToGroupIdx, count: g.groups.length };
       }
     };
   })();
@@ -854,90 +850,22 @@
 
     function takeScreenshot(){
       return new Promise(function(resolve, reject){
-        try{
-          var S = 2, W = 1000, H = 1960;
-          var canvas = document.createElement('canvas');
-          canvas.width = W*S; canvas.height = H*S;
-          var ctx = canvas.getContext('2d');
-          ctx.scale(S, S);
-          var FONT = "'Baloo 2','Nunito','Malgun Gothic','Apple SD Gothic Neo',sans-serif";
-
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, W, H);
-
-          function text(str, x, y, size, color, weight, align){
-            ctx.font = (weight||'700') + ' ' + size + 'px ' + FONT;
-            ctx.fillStyle = color;
-            ctx.textAlign = align || 'left';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(str, x, y);
-          }
-
-          var snap = logSection.getSnapshot();
-          var info = studentInfo.get();
-
-          // header
-          text('러시아워 퍼즐 기록지', 50, 48, 32, '#23262a', '800');
-          var who = [info.id, info.name].filter(Boolean).join(' · ');
-          var line = who + (snap.count > 0 ? '  ·  이동 ' + snap.count + '번' : '  ·  이동 0번');
-          text(line, 50, 92, 26, '#c0603f', '800');
-
-          function drawStateGrid(data, x0, y0, cell){
-            for(var r=0; r<6; r++){
-              for(var c=0; c<6; c++){
-                var x = x0 + c*cell, y = y0 + r*cell;
-                var letter = data[r+'_'+c];
-                ctx.fillStyle = letter ? CAR_MAP[letter].color : '#ffffff';
-                ctx.fillRect(x, y, cell, cell);
-                ctx.strokeStyle = '#9aa0a8'; ctx.lineWidth = 1.5;
-                ctx.strokeRect(x, y, cell, cell);
-                if(letter){
-                  text(letter, x+cell/2, y+cell/2+1, 30, textColorFor(CAR_MAP[letter].color), '800', 'center');
-                }
-              }
-            }
-            ctx.strokeStyle = '#23262a'; ctx.lineWidth = 3;
-            ctx.strokeRect(x0, y0, cell*6, cell*6);
-          }
-
-          var cellA = 72;
-          text('처음 상태', 50, 140, 24, '#23262a', '800');
-          drawStateGrid(stateA.getData(), 50, 160, cellA);
-          text('목표 상태', 518, 140, 24, '#23262a', '800');
-          drawStateGrid(stateB.getData(), 518, 160, cellA);
-
-          // move log
-          var cell = 62, gx = (W - cell*12)/2, gy = 700;
-          text('이동 경로 기록', 50, 660, 24, '#23262a', '800');
-          for(var r=0; r<20; r++){
-            for(var c=0; c<12; c++){
-              var key = r+'_'+c;
-              var x = gx + c*cell, y = gy + r*cell;
-              var entry = snap.data[key];
-              ctx.fillStyle = entry ? CAR_MAP[entry.l].color : '#ffffff';
-              ctx.fillRect(x, y, cell, cell);
-              ctx.strokeStyle = '#9aa0a8'; ctx.lineWidth = 1.5;
-              ctx.strokeRect(x, y, cell, cell);
-              if(entry){
-                var tc = textColorFor(CAR_MAP[entry.l].color);
-                text(entry.l, x+cell/2, y+cell/2-8, 24, tc, '800', 'center');
-                text(DIR_MAP[entry.d].sym, x+cell/2, y+cell/2+15, 22, tc, '700', 'center');
-                var gi = snap.keyToGroupIdx[key];
-                if(gi > -1){
-                  ctx.fillStyle = '#d1372b';
-                  ctx.beginPath(); ctx.arc(x+cell-15, y+15, 12, 0, Math.PI*2); ctx.fill();
-                  text(String(gi+1), x+cell-15, y+16, 14, '#ffffff', '800', 'center');
-                }
-              }
-            }
-          }
-          ctx.strokeStyle = '#23262a'; ctx.lineWidth = 3;
-          ctx.strokeRect(gx, gy, cell*12, cell*20);
-
+        if(typeof html2canvas === 'undefined'){
+          reject(new Error('캡처 도구를 아직 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'));
+          return;
+        }
+        html2canvas(document.body, {
+          backgroundColor: bgColor(),
+          scale: Math.min(2, window.devicePixelRatio || 1.5),
+          useCORS: true,
+          scrollX: 0,
+          scrollY: -window.scrollY,
+          ignoreElements: function(el){ return el.id === 'toast'; }
+        }).then(function(canvas){
           canvas.toBlob(function(blob){
             if(blob) resolve(blob); else reject(new Error('이미지를 만들지 못했어요.'));
           }, 'image/png');
-        }catch(e){ reject(e); }
+        }).catch(reject);
       });
     }
 
