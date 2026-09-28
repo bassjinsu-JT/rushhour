@@ -857,7 +857,10 @@
         html2canvas(document.body, {
           backgroundColor: bgColor(),
           scale: Math.min(2, window.devicePixelRatio || 1.5),
-          useCORS: true
+          useCORS: true,
+          scrollX: 0,
+          scrollY: -window.scrollY,
+          ignoreElements: function(el){ return el.id === 'toast'; }
         }).then(function(canvas){
           canvas.toBlob(function(blob){
             if(blob) resolve(blob); else reject(new Error('이미지를 만들지 못했어요.'));
@@ -866,52 +869,72 @@
       });
     }
 
+    var downloads = null;
+
+    function fallbackSave(filename, data){
+      var blob = (data instanceof Blob) ? data : new Blob([data], {type:'text/plain;charset=utf-8'});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+    }
+
+    async function saveFile(filename, data){
+      if(downloads){
+        await downloads.save({ filename: filename, data: data });
+      } else {
+        fallbackSave(filename, data);
+      }
+    }
+
+    function needInfo(){
+      var info = studentInfo.get();
+      if(!info.id && !info.name){
+        toast('학번과 이름을 먼저 적어 주세요');
+        return true;
+      }
+      return false;
+    }
+
     async function init(){
       try{
-        if(!window.claude || !window.claude.use) return;
-        var downloads = await window.claude.use('downloads');
-        if(!downloads) return;
-        panel.style.display = '';
+        if(window.claude && window.claude.use){
+          downloads = await window.claude.use('downloads');
+        }
+      }catch(e){ downloads = null; }
+      panel.style.display = '';
 
-        shotBtn.addEventListener('click', async function(){
-          var info = studentInfo.get();
-          if(!info.id && !info.name){
-            toast('학번과 이름을 먼저 적어 주세요');
-            return;
-          }
-          var originalLabel = shotBtn.textContent;
-          shotBtn.textContent = '캡처하는 중…';
-          shotBtn.disabled = true;
-          try{
-            var blob = await takeScreenshot();
-            await downloads.save({ filename: studentInfo.fileTag() + 'rushhour_결과.png', data: blob });
-            toast('스크린샷을 저장했어요');
-          }catch(err){
-            var code = err && err.code;
-            if(code === 'declined'){ /* 사용자가 취소함 */ }
-            else { toast((err && err.message) || '저장하지 못했어요'); }
-          }finally{
-            shotBtn.textContent = originalLabel;
-            shotBtn.disabled = false;
-          }
-        });
+      shotBtn.addEventListener('click', async function(){
+        if(needInfo()) return;
+        var originalLabel = shotBtn.textContent;
+        shotBtn.textContent = '캡처하는 중…';
+        shotBtn.disabled = true;
+        try{
+          var blob = await takeScreenshot();
+          await saveFile(studentInfo.fileTag() + 'rushhour_결과.png', blob);
+          toast('스크린샷을 저장했어요');
+        }catch(err){
+          if(err && err.code === 'declined'){ /* 취소 */ }
+          else { toast('캡처 실패: ' + ((err && err.message) || '알 수 없는 오류')); }
+        }finally{
+          shotBtn.textContent = originalLabel;
+          shotBtn.disabled = false;
+        }
+      });
 
-        btn.addEventListener('click', async function(){
-          var info = studentInfo.get();
-          if(!info.id && !info.name){
-            toast('학번과 이름을 먼저 적어 주세요');
-            return;
-          }
-          try{
-            await downloads.save({ filename: studentInfo.fileTag() + 'rushhour_결과.txt', data: buildSummary() });
-            toast('파일을 저장했어요');
-          }catch(err){
-            var code = err && err.code;
-            if(code === 'declined'){ /* 사용자가 취소함 */ }
-            else { toast('저장하지 못했어요'); }
-          }
-        });
-      }catch(e){ /* 이 화면에서는 저장 기능을 쓸 수 없어요 */ }
+      btn.addEventListener('click', async function(){
+        if(needInfo()) return;
+        try{
+          await saveFile(studentInfo.fileTag() + 'rushhour_결과.txt', buildSummary());
+          toast('파일을 저장했어요');
+        }catch(err){
+          if(err && err.code === 'declined'){ /* 취소 */ }
+          else { toast('저장하지 못했어요'); }
+        }
+      });
     }
     init();
   })();
